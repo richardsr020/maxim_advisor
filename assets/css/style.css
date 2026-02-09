@@ -1654,3 +1654,49 @@ a {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 520px) {
+    .chat-container {
+        gap: 12px;
+        min-height: 0;
+        height: auto;
+    }
+
+    .chat-main,
+    .chat-sidebar {
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    .chat-messages {
+        padding-bottom: 64px;
+    }
+
+    .chat-bubble {
+        max-width: 92%;
+    }
+
+    .chat-input {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .chat-input textarea {
+        min-height: 44px;
+        max-height: 140px;
+        resize: none;
+    }
+
+    .chat-input button {
+        width: 100%;
+        height: 44px;
+    }
+
+    .chat-fab {
+        width: 52px;
+        height: 52px;
+        right: 16px;
+        bottom: 90px;
+    }
+}

@@ -30,6 +30,7 @@ $expenses = queryAll($sql, $params);
 $sql = "SELECT 
             c.name,
             c.icon,
+            c.color,
             SUM(t.amount) as total,
             COUNT(*) as count
         FROM transactions t
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
             <h3>Résumé des dépenses</h3>
             <div class="stats-cards">
                 <?php foreach ($categoryTotals as $cat): ?>
-                <div class="stat-card" style="--stat-color: <?php echo $cat['color']; ?>">
+                <div class="stat-card" style="--stat-color: <?php echo $cat['color'] ?? '#ccc'; ?>">
                     <div class="stat-icon"><?php echo $cat['icon']; ?></div>
                     <div class="stat-details">
                         <div class="stat-name tone-category"><?php echo htmlspecialchars($cat['name']); ?></div>

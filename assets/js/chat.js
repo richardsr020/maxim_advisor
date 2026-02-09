@@ -268,6 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideTypingIndicator();
                 if (data && data.assistant) {
                     appendAssistantMessageProgressive(data.assistant.content_html || '');
+                } else {
+                    appendAssistantMessageProgressive('<p>Désolé, je n’ai pas pu répondre pour le moment. Réessaie dans quelques instants.</p>');
                 }
                 loadThreads();
             })

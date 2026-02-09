@@ -631,7 +631,8 @@ if ($action === 'send' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $assistantContent = callGemini($systemPrompt, $followUpPrompt, 0.2);
         }
     } catch (Exception $e) {
-        $assistantContent = "Désolé, une erreur est survenue lors de l'appel IA: " . $e->getMessage();
+        error_log('[Gemini] ' . $e->getMessage());
+        $assistantContent = "Désolé, je n’ai pas pu répondre pour le moment. Réessaie dans quelques instants.";
     }
 
     addChatMessage($threadId, 'assistant', $assistantContent);
