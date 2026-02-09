@@ -92,10 +92,10 @@
         </div>
     </div>
     
-    <script src="/assets/js/app.js"></script>
+    <script src="assets/js/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/assets/js/charts.js"></script>
-    <script src="/assets/js/stats.js"></script>
-    <script src="/assets/js/fab.js"></script>
+    <script src="assets/js/charts.js"></script>
+    <script src="assets/js/stats.js"></script>
+    <script src="assets/js/fab.js"></script>
 </body>
 </html>

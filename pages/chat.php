@@ -34,4 +34,4 @@ require_once __DIR__ . '/../includes/period.php';
     </div>
 </div>
 
-<script src="/assets/js/chat.js"></script>
+<script src="assets/js/chat.js"></script>

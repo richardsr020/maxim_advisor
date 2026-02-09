@@ -262,8 +262,6 @@ $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated)
     
 </div>
 
-<!-- Modals -->
-<?php include __DIR__ . '/../templates/modals/add-income.php'; ?>
-<?php include __DIR__ . '/../templates/modals/add-expense.php'; ?>
+<!-- Modals (chargés globalement dans templates/footer.php) -->
 
-<script src="/assets/js/dashboard.js"></script>
+<script src="assets/js/dashboard.js"></script>
