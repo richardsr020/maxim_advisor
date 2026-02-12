@@ -5,8 +5,8 @@ require_once __DIR__ . '/../includes/budgets.php';
 require_once __DIR__ . '/../includes/notifications.php';
 require_once __DIR__ . '/../includes/transactions.php';
 require_once __DIR__ . '/../includes/calculations.php';
+require_once __DIR__ . '/../includes/flash.php';
 
-$success = null;
 $error = null;
 
 // Gestion des formulaires rapides (modals)
@@ -27,11 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($incomeType === 'main') {
                 $params = getCurrentParameters();
                 createPeriod($amount, $params['id']);
-                header('Location: ?page=dashboard&success=income_main');
+                addFlashMessage("Nouvelle période créée et revenu principal enregistré.", 'success');
+                header('Location: ?page=dashboard');
                 exit;
             } else {
                 recordExtraIncome($amount, $description);
-                header('Location: ?page=dashboard&success=income_extra');
+                addFlashMessage("Revenu occasionnel enregistré.", 'success');
+                header('Location: ?page=dashboard');
                 exit;
             }
         }
@@ -53,24 +55,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             recordExpense($categoryId, $amount, $description, $comment);
-            header('Location: ?page=dashboard&success=expense');
+            addFlashMessage("Dépense enregistrée.", 'success');
+            header('Location: ?page=dashboard');
             exit;
         }
     } catch (Exception $e) {
         $error = $e->getMessage();
+        addFlashMessage($error, 'error');
     }
 }
 
 if (isset($_GET['success'])) {
     switch ($_GET['success']) {
         case 'income_main':
-            $success = "Nouvelle période créée et revenu principal enregistré";
+            addFlashMessage("Nouvelle période créée et revenu principal enregistré.", 'success');
             break;
         case 'income_extra':
-            $success = "Revenu occasionnel enregistré";
+            addFlashMessage("Revenu occasionnel enregistré.", 'success');
             break;
         case 'expense':
-            $success = "Dépense enregistrée";
+            addFlashMessage("Dépense enregistrée.", 'success');
             break;
     }
 }
@@ -96,10 +100,6 @@ $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated)
 ?>
 
 <div class="dashboard-container">
-    <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-    <?php endif; ?>
-    
     <?php if ($error): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>

@@ -111,31 +111,77 @@ function checkConnection() {
 
 // Afficher des notifications toast
 function showToast(message, type = 'info') {
+    const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-triangle-exclamation',
+        warning: 'fa-circle-exclamation',
+        info: 'fa-circle-info'
+    };
+    const titles = {
+        success: 'Succès',
+        error: 'Erreur',
+        warning: 'Attention',
+        info: 'Info'
+    };
+
+    let stack = document.getElementById('toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'toast-stack';
+        stack.className = 'toast-stack';
+        document.body.appendChild(stack);
+    }
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
 
-// Animation CSS pour les toasts
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
+    const icon = document.createElement('div');
+    icon.className = 'toast-icon';
+    const iconEl = document.createElement('i');
+    iconEl.className = `fa-solid ${icons[type] || icons.info}`;
+    icon.appendChild(iconEl);
+
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+
+    const title = document.createElement('div');
+    title.className = 'toast-title';
+    title.textContent = titles[type] || titles.info;
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'toast-message';
+    messageEl.textContent = message;
+
+    content.appendChild(title);
+    content.appendChild(messageEl);
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Fermer');
+    close.textContent = '×';
+
+    const progress = document.createElement('div');
+    progress.className = 'toast-progress';
+
+    toast.appendChild(icon);
+    toast.appendChild(content);
+    toast.appendChild(close);
+    toast.appendChild(progress);
+    stack.appendChild(toast);
+
+    const dismiss = () => {
+        if (toast.classList.contains('toast-hide')) {
+            return;
+        }
+        toast.classList.add('toast-hide');
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    close.addEventListener('click', dismiss);
+
+    setTimeout(dismiss, 4000);
+}
 
 // Détection de changement de période
 function checkPeriodChange() {

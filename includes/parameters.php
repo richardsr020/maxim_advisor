@@ -40,17 +40,21 @@ function createParameters($data) {
     
     try {
         $db->beginTransaction();
+
+        $nextVersionRow = queryOne("SELECT COALESCE(MAX(version), 0) + 1 as next_version FROM parameters");
+        $nextVersion = (int)($nextVersionRow['next_version'] ?? 1);
         
         // Désactiver les anciens paramètres
         $db->exec("UPDATE parameters SET is_active = 0 WHERE is_active = 1");
         
         // Insérer les nouveaux paramètres
         $sql = "INSERT INTO parameters 
-                (default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent, is_active)
-                VALUES (?, ?, ?, ?, ?, 1)";
+                (version, default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, 1)";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([
+            $nextVersion,
             $data['default_income'],
             $data['currency'],
             $data['tithing_percent'],

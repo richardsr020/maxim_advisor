@@ -77,6 +77,15 @@ function initDatabase() {
 
     ensureColumn($db, 'ai_chat_threads', 'summary_text', 'TEXT');
     ensureColumn($db, 'ai_chat_threads', 'summary_updated_at', 'DATETIME');
+
+    // Colonnes paramètres pour compatibilité
+    ensureColumn($db, 'parameters', 'version', 'INTEGER DEFAULT 1');
+    ensureColumn($db, 'parameters', 'default_income', 'INTEGER DEFAULT 120000');
+    ensureColumn($db, 'parameters', 'currency', "TEXT DEFAULT 'FC'");
+    ensureColumn($db, 'parameters', 'tithing_percent', 'INTEGER DEFAULT 10');
+    ensureColumn($db, 'parameters', 'main_saving_percent', 'INTEGER DEFAULT 20');
+    ensureColumn($db, 'parameters', 'extra_saving_percent', 'INTEGER DEFAULT 50');
+    ensureColumn($db, 'parameters', 'is_active', 'BOOLEAN DEFAULT 1');
 }
 
 function ensureColumn(PDO $db, $table, $column, $definition) {

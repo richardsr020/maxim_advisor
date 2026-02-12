@@ -3,6 +3,7 @@
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/parameters.php';
 require_once __DIR__ . '/budgets.php';
+require_once __DIR__ . '/calculations.php';
 
 /**
  * Récupère la période active
@@ -96,6 +97,101 @@ function createPeriod($income, $parametersVersion = 1) {
             'spendable' => $spendable
         ];
         
+    } catch (Exception $e) {
+        $db->rollBack();
+        throw $e;
+    }
+}
+
+/**
+ * Synchronise la période active avec une version de paramètres
+ */
+function synchronizeActivePeriod($parametersVersion = null) {
+    $period = getActivePeriod();
+    if (!$period) {
+        return ['synced' => false, 'reason' => 'no_active_period'];
+    }
+
+    $params = $parametersVersion ? getParameters($parametersVersion) : getCurrentParameters();
+
+    $totals = queryOne(
+        "SELECT 
+            SUM(CASE WHEN type = 'income_main' THEN amount ELSE 0 END) as total_main,
+            SUM(CASE WHEN type = 'income_extra' THEN amount ELSE 0 END) as total_extra
+         FROM transactions
+         WHERE period_id = ?",
+        [$period['id']]
+    );
+
+    $mainIncome = (int)($totals['total_main'] ?? 0);
+    $extraIncome = (int)($totals['total_extra'] ?? 0);
+    $totalIncome = $mainIncome + $extraIncome;
+
+    $tithing = (int)floor($totalIncome * ($params['tithing_percent'] / 100));
+    $savingMain = (int)floor($mainIncome * ($params['main_saving_percent'] / 100));
+    $savingExtra = (int)floor($extraIncome * ($params['extra_saving_percent'] / 100));
+    $saving = $savingMain + $savingExtra;
+    $spendable = max($totalIncome - $tithing - $saving, 0);
+
+    $allocation = calculateBudgetAllocation($spendable, $params['id']);
+
+    $db = getDatabase();
+    try {
+        $db->beginTransaction();
+
+        $db->prepare(
+            "UPDATE financial_periods
+             SET parameters_version = ?, tithing_amount = ?, saving_amount = ?
+             WHERE id = ?"
+        )->execute([
+            $params['id'],
+            $tithing,
+            $saving,
+            $period['id']
+        ]);
+
+        $existing = queryAll(
+            "SELECT id, category_id FROM period_budgets WHERE period_id = ?",
+            [$period['id']]
+        );
+        $existingMap = [];
+        foreach ($existing as $row) {
+            $existingMap[(int)$row['category_id']] = (int)$row['id'];
+        }
+
+        if (!empty($allocation)) {
+            foreach ($allocation as $categoryId => $amount) {
+                $allocated = (int)round($amount);
+                if (isset($existingMap[$categoryId])) {
+                    $db->prepare(
+                        "UPDATE period_budgets SET allocated_amount = ? WHERE id = ?"
+                    )->execute([$allocated, $existingMap[$categoryId]]);
+                } else {
+                    $db->prepare(
+                        "INSERT INTO period_budgets (period_id, category_id, allocated_amount, spent_amount)
+                         VALUES (?, ?, ?, 0)"
+                    )->execute([$period['id'], $categoryId, $allocated]);
+                }
+            }
+
+            $allocationKeys = array_keys($allocation);
+            foreach ($existingMap as $categoryId => $budgetId) {
+                if (!in_array($categoryId, $allocationKeys, true)) {
+                    $db->prepare(
+                        "UPDATE period_budgets SET allocated_amount = 0 WHERE id = ?"
+                    )->execute([$budgetId]);
+                }
+            }
+        }
+
+        $db->commit();
+
+        return [
+            'synced' => true,
+            'period_id' => $period['id'],
+            'total_income' => $totalIncome,
+            'spendable' => $spendable
+        ];
     } catch (Exception $e) {
         $db->rollBack();
         throw $e;

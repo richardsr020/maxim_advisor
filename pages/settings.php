@@ -2,6 +2,8 @@
 // settings.php - Page des paramètres
 require_once __DIR__ . '/../includes/parameters.php';
 require_once __DIR__ . '/../includes/budgets.php';
+require_once __DIR__ . '/../includes/period.php';
+require_once __DIR__ . '/../includes/flash.php';
 
 $currentParams = getCurrentParameters();
 $categories = getAllCategories();
@@ -30,25 +32,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Valider
         if ($total != 100) {
             $error = "Les pourcentages de budget doivent totaliser 100% (actuellement: {$total}%)";
+            addFlashMessage($error, 'warning');
         } else {
             $newVersion = createParameters($data);
-            $success = "Paramètres mis à jour avec succès (version {$newVersion})";
-            $currentParams = getCurrentParameters();
-            $budgetPercentages = getBudgetPercentages($currentParams['id']);
+            $newParams = getParameters($newVersion);
+            $versionLabel = $newParams['version'] ?? $newVersion;
+            addFlashMessage("Paramètres mis à jour avec succès (version {$versionLabel})", 'success');
+
+            $syncResult = synchronizeActivePeriod($newVersion);
+            if ($syncResult['synced']) {
+                addFlashMessage('Synchronisation des calculs terminée pour la période active.', 'success');
+            } else {
+                addFlashMessage('Paramètres enregistrés. Aucune période active à synchroniser.', 'info');
+            }
+
+            header('Location: ?page=settings');
+            exit;
         }
         
     } catch (Exception $e) {
         $error = "Erreur: " . $e->getMessage();
+        addFlashMessage($error, 'error');
     }
 }
 ?>
 
 <div class="settings-container">
     <h2>⚙️ Paramètres du système</h2>
-    
-    <?php if (isset($success)): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-    <?php endif; ?>
     
     <?php if (isset($error)): ?>
     <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
@@ -152,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <tbody>
                 <?php foreach ($history as $param): ?>
                 <tr <?php echo $param['is_active'] ? 'class="active"' : ''; ?>>
-                    <td>v<?php echo $param['id']; ?></td>
+                    <td>v<?php echo $param['version'] ?? $param['id']; ?></td>
                     <td><?php echo formatCurrency($param['default_income']); ?></td>
                     <td><?php echo $param['tithing_percent']; ?>%</td>
                     <td><?php echo $param['main_saving_percent']; ?>%</td>

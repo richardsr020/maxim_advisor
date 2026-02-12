@@ -22,6 +22,7 @@ require_once ROOT_PATH . '/includes/database.php';
 initDatabase();
 
 // Charger les dépendances globales utilisées par les templates
+require_once ROOT_PATH . '/includes/flash.php';
 require_once ROOT_PATH . '/includes/period.php';
 require_once ROOT_PATH . '/includes/budgets.php';
 

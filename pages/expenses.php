@@ -2,6 +2,7 @@
 // expenses.php - Gestion des dépenses
 require_once __DIR__ . '/../includes/budgets.php';
 require_once __DIR__ . '/../includes/transactions.php';
+require_once __DIR__ . '/../includes/flash.php';
 
 $period = getActivePeriod();
 $categories = getAllCategories();
@@ -55,14 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
             $error = "La description est obligatoire";
         } else {
             $transactionId = recordExpense($categoryId, $amount, $description, $comment);
-            $success = "Dépense enregistrée avec succès";
-            
-            // Recharger les données
-            header("Location: ?page=expenses&added=" . $transactionId);
+            addFlashMessage("Dépense enregistrée avec succès.", 'success');
+            header("Location: ?page=expenses");
             exit;
         }
     } catch (Exception $e) {
         $error = $e->getMessage();
+        addFlashMessage($error, 'error');
     }
 }
 ?>
@@ -89,10 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
         
         <div class="add-expense-form">
             <h3>Nouvelle dépense</h3>
-            
-            <?php if (isset($success)): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
-            <?php endif; ?>
             
             <?php if (isset($error)): ?>
             <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>

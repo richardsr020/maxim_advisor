@@ -87,8 +87,8 @@ require_once __DIR__ . '/includes/config.php';
                 
                 // Insérer paramètres
                 $stmt = $db->prepare("
-                    INSERT INTO parameters (default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent) 
-                    VALUES (?, 'FC', 10, 20, 50)
+                    INSERT INTO parameters (version, default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent) 
+                    VALUES (1, ?, 'FC', 10, 20, 50)
                 ");
                 $stmt->execute([$defaultIncome]);
                 $parametersId = $db->lastInsertId();

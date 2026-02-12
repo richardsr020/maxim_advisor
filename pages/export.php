@@ -2,6 +2,7 @@
 // export.php - Export des données
 require_once __DIR__ . '/../includes/export.php';
 require_once __DIR__ . '/../includes/period.php';
+require_once __DIR__ . '/../includes/flash.php';
 
 $periods = getAllPeriods();
 $exports = getExportHistory();
@@ -12,9 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_period'])) {
         $periodId = (int)$_POST['period_id'];
         $result = exportPeriodToJSON($periodId);
         $success = "Export réussi: " . $result['filename'] . " (" . round($result['size']/1024, 2) . " KB)";
+        addFlashMessage($success, 'success');
         $exports = getExportHistory(); // Recharger la liste
     } catch (Exception $e) {
         $error = "Erreur d'export: " . $e->getMessage();
+        addFlashMessage($error, 'error');
     }
 }
 
@@ -24,9 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_year'])) {
         $year = (int)$_POST['year'];
         $result = exportYearToJSON($year);
         $success = "Export annuel réussi: " . $result['filename'] . " (" . round($result['size']/1024, 2) . " KB)";
+        addFlashMessage($success, 'success');
         $exports = getExportHistory();
     } catch (Exception $e) {
         $error = "Erreur d'export: " . $e->getMessage();
+        addFlashMessage($error, 'error');
     }
 }
 

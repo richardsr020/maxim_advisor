@@ -93,6 +93,22 @@
     </div>
     
     <script src="assets/js/app.js"></script>
+    <?php
+    require_once ROOT_PATH . '/includes/flash.php';
+    $flashMessages = consumeFlashMessages();
+    ?>
+    <script>
+        (function() {
+            const messages = <?php echo json_encode($flashMessages, JSON_UNESCAPED_UNICODE); ?>;
+            if (!Array.isArray(messages) || typeof showToast !== 'function') {
+                return;
+            }
+            messages.forEach((toast) => {
+                if (!toast || !toast.message) return;
+                showToast(toast.message, toast.type || 'info');
+            });
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="assets/js/charts.js"></script>
     <script src="assets/js/stats.js"></script>
