@@ -114,42 +114,62 @@ function synchronizeActivePeriod($parametersVersion = null) {
 
     $params = $parametersVersion ? getParameters($parametersVersion) : getCurrentParameters();
 
-    $totals = queryOne(
-        "SELECT 
-            SUM(CASE WHEN type = 'income_main' THEN amount ELSE 0 END) as total_main,
-            SUM(CASE WHEN type = 'income_extra' THEN amount ELSE 0 END) as total_extra
+    $incomeTransactions = queryAll(
+        "SELECT id, type, amount
          FROM transactions
-         WHERE period_id = ?",
+         WHERE period_id = ? AND type IN ('income_main', 'income_extra')
+         ORDER BY id ASC",
         [$period['id']]
     );
 
-    $mainIncome = (int)($totals['total_main'] ?? 0);
-    $extraIncome = (int)($totals['total_extra'] ?? 0);
-    $totalIncome = $mainIncome + $extraIncome;
-
-    $tithing = (int)floor($totalIncome * (FIXED_TITHING_PERCENT / 100));
-    $savingMain = (int)floor($mainIncome * ($params['main_saving_percent'] / 100));
-    if (!empty($params['extra_income_to_savings_only'])) {
-        $extraTithing = (int)floor($extraIncome * (FIXED_TITHING_PERCENT / 100));
-        $savingExtra = max($extraIncome - $extraTithing, 0);
-    } else {
-        $savingExtra = (int)floor($extraIncome * ($params['extra_saving_percent'] / 100));
-    }
-    $saving = $savingMain + $savingExtra;
-    $spendable = max($totalIncome - $tithing - $saving, 0);
-
-    $allocation = calculateBudgetAllocation($spendable, $params['id']);
+    $mainIncome = 0;
+    $extraIncome = 0;
+    $tithing = 0;
+    $saving = 0;
 
     $db = getDatabase();
+    $updateIncomeStmt = $db->prepare(
+        "UPDATE transactions
+         SET tithing_paid = ?, saving_paid = ?
+         WHERE id = ?"
+    );
+
     try {
         $db->beginTransaction();
 
+        foreach ($incomeTransactions as $tx) {
+            $amount = (int)$tx['amount'];
+            $type = (string)$tx['type'];
+
+            $txTithing = (int)floor($amount * (FIXED_TITHING_PERCENT / 100));
+            if ($type === 'income_main') {
+                $mainIncome += $amount;
+                $txSaving = (int)floor($amount * ($params['main_saving_percent'] / 100));
+            } else {
+                $extraIncome += $amount;
+                if (!empty($params['extra_income_to_savings_only'])) {
+                    $txSaving = max($amount - $txTithing, 0);
+                } else {
+                    $txSaving = (int)floor($amount * ($params['extra_saving_percent'] / 100));
+                }
+            }
+
+            $tithing += $txTithing;
+            $saving += $txSaving;
+            $updateIncomeStmt->execute([$txTithing, $txSaving, (int)$tx['id']]);
+        }
+
+        $totalIncome = $mainIncome + $extraIncome;
+        $spendable = max($totalIncome - $tithing - $saving, 0);
+        $allocation = calculateBudgetAllocation($spendable, $params['id']);
+
         $db->prepare(
             "UPDATE financial_periods
-             SET parameters_version = ?, tithing_amount = ?, saving_amount = ?
+             SET parameters_version = ?, initial_income = ?, tithing_amount = ?, saving_amount = ?
              WHERE id = ?"
         )->execute([
             $params['id'],
+            $mainIncome,
             $tithing,
             $saving,
             $period['id']
