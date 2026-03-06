@@ -75,6 +75,38 @@ function initDatabase() {
         FOREIGN KEY (thread_id) REFERENCES ai_chat_threads(id) ON DELETE CASCADE
     )");
 
+    $db->exec("CREATE TABLE IF NOT EXISTS saving_withdrawals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_id INTEGER,
+        amount INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        date DATE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE SET NULL
+    )");
+
+    $db->exec("CREATE TABLE IF NOT EXISTS tithing_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_id INTEGER,
+        amount INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        date DATE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE SET NULL
+    )");
+
+    $db->exec("CREATE TABLE IF NOT EXISTS budget_adjustments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period_id INTEGER NOT NULL,
+        source_transaction_id INTEGER,
+        category_id INTEGER NOT NULL,
+        amount INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
+        FOREIGN KEY (category_id) REFERENCES budget_categories(id)
+    )");
+
     ensureColumn($db, 'ai_chat_threads', 'summary_text', 'TEXT');
     ensureColumn($db, 'ai_chat_threads', 'summary_updated_at', 'DATETIME');
 
@@ -85,6 +117,7 @@ function initDatabase() {
     ensureColumn($db, 'parameters', 'tithing_percent', 'INTEGER DEFAULT 10');
     ensureColumn($db, 'parameters', 'main_saving_percent', 'INTEGER DEFAULT 20');
     ensureColumn($db, 'parameters', 'extra_saving_percent', 'INTEGER DEFAULT 50');
+    ensureColumn($db, 'parameters', 'extra_income_to_savings_only', 'BOOLEAN DEFAULT 0');
     ensureColumn($db, 'parameters', 'is_active', 'BOOLEAN DEFAULT 1');
 }
 

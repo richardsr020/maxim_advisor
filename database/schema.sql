@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS parameters (
     tithing_percent INTEGER NOT NULL DEFAULT 10,
     main_saving_percent INTEGER NOT NULL DEFAULT 20,
     extra_saving_percent INTEGER NOT NULL DEFAULT 50,
+    extra_income_to_savings_only BOOLEAN NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT 1
 );
@@ -108,6 +109,41 @@ CREATE TABLE IF NOT EXISTS deferred_tithing (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (source_period_id) REFERENCES financial_periods(id),
     FOREIGN KEY (target_period_id) REFERENCES financial_periods(id)
+);
+
+-- Retraits d'épargne (projets importants)
+CREATE TABLE IF NOT EXISTS saving_withdrawals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_id INTEGER,
+    amount INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    date DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE SET NULL
+);
+
+-- Versements de dîme
+CREATE TABLE IF NOT EXISTS tithing_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_id INTEGER,
+    amount INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    date DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE SET NULL
+);
+
+-- Ajustements de budget suite aux revenus occasionnels
+CREATE TABLE IF NOT EXISTS budget_adjustments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_id INTEGER NOT NULL,
+    source_transaction_id INTEGER,
+    category_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (period_id) REFERENCES financial_periods(id) ON DELETE CASCADE,
+    FOREIGN KEY (source_transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
+    FOREIGN KEY (category_id) REFERENCES budget_categories(id)
 );
 
 -- Table d'historique d'export

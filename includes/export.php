@@ -36,6 +36,31 @@ function exportPeriodToJSON($periodId) {
         WHERE t.period_id = ?
         ORDER BY t.date, t.created_at
     ", [$periodId]);
+
+    $savingWithdrawals = queryAll(
+        "SELECT amount, description, date, created_at
+         FROM saving_withdrawals
+         WHERE period_id = ?
+         ORDER BY date, created_at",
+        [$periodId]
+    );
+
+    $tithingPayments = queryAll(
+        "SELECT amount, description, date, created_at
+         FROM tithing_payments
+         WHERE period_id = ?
+         ORDER BY date, created_at",
+        [$periodId]
+    );
+
+    $budgetAdjustments = queryAll(
+        "SELECT ba.category_id, ba.amount, ba.created_at, c.name as category_name
+         FROM budget_adjustments ba
+         JOIN budget_categories c ON ba.category_id = c.id
+         WHERE ba.period_id = ?
+         ORDER BY ba.created_at",
+        [$periodId]
+    );
     
     // Récupérer les notifications IA liées à la période
     $notifications = getOverlappingNotificationsForPeriod($period['start_date'], $period['end_date']);
@@ -56,9 +81,10 @@ function exportPeriodToJSON($periodId) {
             'version' => $parameters['version'],
             'default_income' => $parameters['default_income'],
             'currency' => $parameters['currency'],
-            'tithing_percent' => $parameters['tithing_percent'],
+            'tithing_percent' => FIXED_TITHING_PERCENT,
             'main_saving_percent' => $parameters['main_saving_percent'],
-            'extra_saving_percent' => $parameters['extra_saving_percent']
+            'extra_saving_percent' => $parameters['extra_saving_percent'],
+            'extra_income_to_savings_only' => (int)($parameters['extra_income_to_savings_only'] ?? 0)
         ],
         'budgets' => array_map(function($budget) {
             return [
@@ -83,6 +109,32 @@ function exportPeriodToJSON($periodId) {
                 'balance_after' => $transaction['balance_after']
             ];
         }, $transactions),
+        'fund_operations' => [
+            'saving_withdrawals' => array_map(function($row) {
+                return [
+                    'date' => $row['date'],
+                    'amount' => $row['amount'],
+                    'description' => normalizeExportText($row['description']),
+                    'created_at' => $row['created_at']
+                ];
+            }, $savingWithdrawals),
+            'tithing_payments' => array_map(function($row) {
+                return [
+                    'date' => $row['date'],
+                    'amount' => $row['amount'],
+                    'description' => normalizeExportText($row['description']),
+                    'created_at' => $row['created_at']
+                ];
+            }, $tithingPayments),
+            'budget_adjustments' => array_map(function($row) {
+                return [
+                    'category_id' => $row['category_id'],
+                    'category_name' => normalizeExportText($row['category_name']),
+                    'amount' => $row['amount'],
+                    'created_at' => $row['created_at']
+                ];
+            }, $budgetAdjustments)
+        ],
         'notifications' => array_map(function($notification) {
             return [
                 'timeframe' => $notification['timeframe'],
@@ -100,6 +152,8 @@ function exportPeriodToJSON($periodId) {
             'total_expenses' => $totals['total_expenses'],
             'total_tithing' => $totals['total_tithing'],
             'total_saving' => $totals['total_saving'],
+            'total_tithing_paid' => array_sum(array_map(function($row) { return (int)$row['amount']; }, $tithingPayments)),
+            'total_saving_withdrawn' => array_sum(array_map(function($row) { return (int)$row['amount']; }, $savingWithdrawals)),
             'total_budget' => $totals['total_budget'],
             'total_spent' => $totals['total_spent'],
             'remaining_budget' => $totals['total_budget'] - $totals['total_spent'],

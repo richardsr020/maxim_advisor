@@ -405,9 +405,10 @@ function buildFinancialContext($periodId = null) {
             'version' => $parameters['version'],
             'default_income' => $parameters['default_income'],
             'currency' => $parameters['currency'],
-            'tithing_percent' => $parameters['tithing_percent'],
+            'tithing_percent' => FIXED_TITHING_PERCENT,
             'main_saving_percent' => $parameters['main_saving_percent'],
             'extra_saving_percent' => $parameters['extra_saving_percent'],
+            'extra_income_to_savings_only' => (int)($parameters['extra_income_to_savings_only'] ?? 0),
             'budget_percentages' => $budgetPercentages
         ],
         'summary' => [

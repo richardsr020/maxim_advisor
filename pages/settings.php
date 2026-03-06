@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'default_income' => (int)$_POST['default_income'],
             'currency' => $_POST['currency'],
-            'tithing_percent' => (int)$_POST['tithing_percent'],
             'main_saving_percent' => (int)$_POST['main_saving_percent'],
             'extra_saving_percent' => (int)$_POST['extra_saving_percent'],
+            'extra_income_to_savings_only' => isset($_POST['extra_income_to_savings_only']) ? 1 : 0,
             'budget_percentages' => []
         ];
         
@@ -86,8 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Dîme (%)</label>
                     <input type="number" name="tithing_percent" 
-                           value="<?php echo htmlspecialchars($currentParams['tithing_percent']); ?>" 
-                           required min="0" max="100">
+                           value="<?php echo FIXED_TITHING_PERCENT; ?>" 
+                           readonly>
+                    <small class="form-help">La dîme est fixe à 10% pour tous les revenus.</small>
                 </div>
                 
                 <div class="form-group">
@@ -102,6 +103,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="number" name="extra_saving_percent" 
                            value="<?php echo htmlspecialchars($currentParams['extra_saving_percent']); ?>" 
                            required min="0" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox"
+                               name="extra_income_to_savings_only"
+                               value="1"
+                               <?php echo !empty($currentParams['extra_income_to_savings_only']) ? 'checked' : ''; ?>>
+                        Revenu occasionnel: allouer tout à l'épargne (hors dîme)
+                    </label>
+                    <small class="form-help">Si activé, le revenu occasionnel n'est plus réparti dans les catégories de dépenses.</small>
                 </div>
             </div>
         </div>
@@ -164,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <tr <?php echo $param['is_active'] ? 'class="active"' : ''; ?>>
                     <td>v<?php echo $param['version'] ?? $param['id']; ?></td>
                     <td><?php echo formatCurrency($param['default_income']); ?></td>
-                    <td><?php echo $param['tithing_percent']; ?>%</td>
+                    <td><?php echo FIXED_TITHING_PERCENT; ?>%</td>
                     <td><?php echo $param['main_saving_percent']; ?>%</td>
                     <td><?php echo date('d/m/Y H:i', strtotime($param['created_at'])); ?></td>
                 </tr>

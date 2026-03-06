@@ -203,6 +203,29 @@ setInterval(checkPeriodChange, 300000);
 document.addEventListener('DOMContentLoaded', function() {
     applyTheme(getPreferredTheme());
     checkConnection();
+
+    // Gestion des options revenu occasionnel dans le modal revenu
+    const incomeType = document.getElementById('income-type');
+    const extraIncomeOptions = document.getElementById('extra-income-options');
+    const extraIncomeToSavingsOnly = document.getElementById('extra-income-to-savings-only');
+
+    function toggleExtraIncomeOptions() {
+        if (!incomeType || !extraIncomeOptions || !extraIncomeToSavingsOnly) {
+            return;
+        }
+
+        const isExtraIncome = incomeType.value === 'extra';
+        extraIncomeOptions.style.display = isExtraIncome ? 'block' : 'none';
+
+        if (!isExtraIncome) {
+            extraIncomeToSavingsOnly.checked = false;
+        }
+    }
+
+    if (incomeType) {
+        incomeType.addEventListener('change', toggleExtraIncomeOptions);
+        toggleExtraIncomeOptions();
+    }
     
     // Gestion du formulaire de dépense dans le modal
     const expenseCategory = document.getElementById('expense-category');

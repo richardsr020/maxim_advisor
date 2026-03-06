@@ -47,19 +47,22 @@ function createParameters($data) {
         // Désactiver les anciens paramètres
         $db->exec("UPDATE parameters SET is_active = 0 WHERE is_active = 1");
         
+        $extraIncomeToSavingsOnly = !empty($data['extra_income_to_savings_only']) ? 1 : 0;
+
         // Insérer les nouveaux paramètres
         $sql = "INSERT INTO parameters 
-                (version, default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, 1)";
+                (version, default_income, currency, tithing_percent, main_saving_percent, extra_saving_percent, extra_income_to_savings_only, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)";
         
         $stmt = $db->prepare($sql);
         $stmt->execute([
             $nextVersion,
             $data['default_income'],
             $data['currency'],
-            $data['tithing_percent'],
+            FIXED_TITHING_PERCENT,
             $data['main_saving_percent'],
-            $data['extra_saving_percent']
+            $data['extra_saving_percent'],
+            $extraIncomeToSavingsOnly
         ]);
         
         $parametersId = $db->lastInsertId();
@@ -91,9 +94,9 @@ function createDefaultParameters() {
     $data = [
         'default_income' => DEFAULT_INCOME,
         'currency' => CURRENCY,
-        'tithing_percent' => TITHING_PERCENT,
         'main_saving_percent' => MAIN_SAVING_PERCENT,
         'extra_saving_percent' => EXTRA_SAVING_PERCENT,
+        'extra_income_to_savings_only' => 0,
         'budget_percentages' => $DEFAULT_BUDGET_PERCENTAGES
     ];
     

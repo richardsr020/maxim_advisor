@@ -14,7 +14,8 @@ define('DB_PATH', ROOT_PATH . '/database/maxim_advisor.sqlite');
 define('EXPORTS_PATH', ROOT_PATH . '/exports/json');
 
 // Constantes financières
-define('TITHING_PERCENT', 10);
+define('FIXED_TITHING_PERCENT', 10);
+define('TITHING_PERCENT', FIXED_TITHING_PERCENT); // Compatibilité historique
 define('MAIN_SAVING_PERCENT', 20);
 define('EXTRA_SAVING_PERCENT', 50);
 

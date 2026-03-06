@@ -31,11 +31,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ?page=dashboard');
                 exit;
             } else {
-                recordExtraIncome($amount, $description);
+                $extraIncomeToSavingsOnly = isset($_POST['extra_income_to_savings_only']);
+                recordExtraIncome($amount, $description, $extraIncomeToSavingsOnly);
                 addFlashMessage("Revenu occasionnel enregistré.", 'success');
                 header('Location: ?page=dashboard');
                 exit;
             }
+        }
+
+        if (isset($_POST['spend_saving'])) {
+            $amount = (int)($_POST['amount'] ?? 0);
+            $description = trim($_POST['description'] ?? '');
+            withdrawFromSaving($amount, $description);
+            addFlashMessage("Retrait d'épargne enregistré.", 'success');
+            header('Location: ?page=dashboard');
+            exit;
+        }
+
+        if (isset($_POST['pay_tithing'])) {
+            $amount = (int)($_POST['amount'] ?? 0);
+            $description = trim($_POST['description'] ?? '');
+            payTithingToChurch($amount, $description);
+            addFlashMessage("Versement de dîme enregistré.", 'success');
+            header('Location: ?page=dashboard');
+            exit;
         }
         
         if (isset($_POST['add_expense'])) {
@@ -97,6 +116,15 @@ $totalAllocated = array_sum(array_column($budgets, 'allocated_amount'));
 $totalSpent = array_sum(array_column($budgets, 'spent_amount'));
 $totalRemaining = $totalAllocated - $totalSpent;
 $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated) * 100) : 0;
+$globalSavingBalance = getAvailableSavingBalance();
+$globalTithingBalance = getAvailableTithingBalance();
+$savingIncrease = getFundIncreaseMetrics('saving', $globalSavingBalance, $activePeriod['id']);
+$tithingIncrease = getFundIncreaseMetrics('tithing', $globalTithingBalance, $activePeriod['id']);
+$savingDecrease = getFundDecreaseMetrics('saving', $globalSavingBalance, $activePeriod['id']);
+$tithingDecrease = getFundDecreaseMetrics('tithing', $globalTithingBalance, $activePeriod['id']);
+$budgetIncrease = getBudgetIncreaseMetrics($activePeriod['id'], $totalAllocated);
+$budgetDecrease = getBudgetDecreaseMetrics($activePeriod['id'], $totalRemaining);
+$budgetIncreaseByCategory = $budgetIncrease['by_category'] ?? [];
 ?>
 
 <div class="dashboard-container">
@@ -139,20 +167,50 @@ $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated)
     <!-- Section fonds obligatoires -->
     <div class="mandatory-funds">
         <div class="fund-card tithing">
+            <button class="fund-action-btn" type="button" onclick="showModal('pay-tithing-modal')" title="Verser la dîme">
+                ↗
+            </button>
             <div class="fund-icon">⛪</div>
             <div class="fund-details">
-                <h3 class="tone-tithing">Dîme</h3>
-                <p class="fund-amount tone-tithing"><?php echo formatCurrency($activePeriod['tithing_amount']); ?></p>
-                <p class="fund-status status-paid">✓ Payée</p>
+                <h3 class="tone-budget">Dîme disponible</h3>
+                <p class="fund-amount tone-tithing"><?php echo formatCurrency($globalTithingBalance); ?></p>
+                <p class="fund-status status-paid">Total cumulé - versements</p>
+                <?php if (($tithingIncrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-positive">
+                    +<?php echo formatCurrency($tithingIncrease['amount']); ?>
+                    (<?php echo $tithingIncrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
+                <?php if (($tithingDecrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-negative">
+                    -<?php echo formatCurrency($tithingDecrease['amount']); ?>
+                    (<?php echo $tithingDecrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
             </div>
         </div>
         
         <div class="fund-card saving">
+            <button class="fund-action-btn" type="button" onclick="showModal('spend-saving-modal')" title="Utiliser l'épargne">
+                ↗
+            </button>
             <div class="fund-icon">💰</div>
             <div class="fund-details">
-                <h3 class="tone-saving">Épargne</h3>
-                <p class="fund-amount tone-saving"><?php echo formatCurrency($activePeriod['saving_amount']); ?></p>
-                <p class="fund-status status-blocked">✓ Bloquée</p>
+                <h3 class="tone-budget">Épargne (globale)</h3>
+                <p class="fund-amount tone-saving"><?php echo formatCurrency($globalSavingBalance); ?></p>
+                <p class="fund-status status-blocked">Somme des épargnes - retraits</p>
+                <?php if (($savingIncrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-positive">
+                    +<?php echo formatCurrency($savingIncrease['amount']); ?>
+                    (<?php echo $savingIncrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
+                <?php if (($savingDecrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-negative">
+                    -<?php echo formatCurrency($savingDecrease['amount']); ?>
+                    (<?php echo $savingDecrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
             </div>
         </div>
         
@@ -164,6 +222,18 @@ $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated)
                 <p class="fund-status status-<?php echo getBudgetStatus($overallPercentage); ?>">
                     <?php echo $overallPercentage; ?>% utilisé
                 </p>
+                <?php if (($budgetIncrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-positive">
+                    +<?php echo formatCurrency($budgetIncrease['amount']); ?>
+                    (<?php echo $budgetIncrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
+                <?php if (($budgetDecrease['amount'] ?? 0) > 0): ?>
+                <p class="fund-delta fund-delta-negative">
+                    -<?php echo formatCurrency($budgetDecrease['amount']); ?>
+                    (<?php echo $budgetDecrease['percentage']; ?>%)
+                </p>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -193,7 +263,13 @@ $overallPercentage = $totalAllocated > 0 ? round(($totalSpent / $totalAllocated)
                         <span class="unexpected-badge">Imprévu</span>
                         <?php endif; ?>
                     </td>
-                    <td class="amount allocated"><?php echo formatCurrency($budget['allocated_amount']); ?></td>
+                    <td class="amount allocated">
+                        <?php echo formatCurrency($budget['allocated_amount']); ?>
+                        <?php $categoryBoost = (int)($budgetIncreaseByCategory[$budget['category_id']] ?? 0); ?>
+                        <?php if ($categoryBoost > 0): ?>
+                        <span class="budget-surplus">+<?php echo formatCurrency($categoryBoost); ?></span>
+                        <?php endif; ?>
+                    </td>
                     <td class="amount spent"><?php echo formatCurrency($budget['spent_amount']); ?></td>
                     <td class="amount remaining <?php echo $budget['is_over'] ? 'negative' : ''; ?>">
                         <?php echo formatCurrency($budget['remaining']); ?>

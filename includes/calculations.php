@@ -7,9 +7,9 @@ require_once __DIR__ . '/budgets.php';
  * Calcule la répartition d'un revenu principal
  */
 function calculateMainIncomeDistribution($amount, $params) {
-    $tithing = floor($amount * ($params['tithing_percent'] / 100));
-    $saving = floor($amount * ($params['main_saving_percent'] / 100));
-    $spendable = $amount - $tithing - $saving;
+    $tithing = (int)floor($amount * (FIXED_TITHING_PERCENT / 100));
+    $saving = (int)floor($amount * ($params['main_saving_percent'] / 100));
+    $spendable = (int)($amount - $tithing - $saving);
     
     return [
         'tithing' => $tithing,
@@ -22,15 +22,27 @@ function calculateMainIncomeDistribution($amount, $params) {
 /**
  * Calcule la répartition d'un revenu occasionnel
  */
-function calculateExtraIncomeDistribution($amount, $params) {
-    $tithing = floor($amount * ($params['tithing_percent'] / 100));
-    $saving = floor($amount * ($params['extra_saving_percent'] / 100));
-    $available = $amount - $tithing - $saving;
+function calculateExtraIncomeDistribution($amount, $params, $savingsOnlyOverride = null) {
+    $tithing = (int)floor($amount * (FIXED_TITHING_PERCENT / 100));
+    if ($savingsOnlyOverride === null) {
+        $allocateToSavingsOnly = !empty($params['extra_income_to_savings_only']);
+    } else {
+        $allocateToSavingsOnly = (bool)$savingsOnlyOverride;
+    }
+
+    if ($allocateToSavingsOnly) {
+        $saving = (int)max($amount - $tithing, 0);
+        $available = 0;
+    } else {
+        $saving = (int)floor($amount * ($params['extra_saving_percent'] / 100));
+        $available = (int)max($amount - $tithing - $saving, 0);
+    }
     
     return [
         'tithing' => $tithing,
         'saving' => $saving,
-        'available' => $available
+        'available' => $available,
+        'allocate_to_savings_only' => $allocateToSavingsOnly
     ];
 }
 

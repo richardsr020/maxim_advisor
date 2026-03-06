@@ -34,9 +34,9 @@ function createPeriod($income, $parametersVersion = 1) {
         $params = getParameters($parametersVersion);
         
         // Calculs obligatoires
-        $tithing = $income * ($params['tithing_percent'] / 100);
-        $saving = $income * ($params['main_saving_percent'] / 100);
-        $spendable = $income - $tithing - $saving;
+        $tithing = (int)floor($income * (FIXED_TITHING_PERCENT / 100));
+        $saving = (int)floor($income * ($params['main_saving_percent'] / 100));
+        $spendable = (int)($income - $tithing - $saving);
         
         // Créer la période
         $sql = "INSERT INTO financial_periods 
@@ -127,9 +127,14 @@ function synchronizeActivePeriod($parametersVersion = null) {
     $extraIncome = (int)($totals['total_extra'] ?? 0);
     $totalIncome = $mainIncome + $extraIncome;
 
-    $tithing = (int)floor($totalIncome * ($params['tithing_percent'] / 100));
+    $tithing = (int)floor($totalIncome * (FIXED_TITHING_PERCENT / 100));
     $savingMain = (int)floor($mainIncome * ($params['main_saving_percent'] / 100));
-    $savingExtra = (int)floor($extraIncome * ($params['extra_saving_percent'] / 100));
+    if (!empty($params['extra_income_to_savings_only'])) {
+        $extraTithing = (int)floor($extraIncome * (FIXED_TITHING_PERCENT / 100));
+        $savingExtra = max($extraIncome - $extraTithing, 0);
+    } else {
+        $savingExtra = (int)floor($extraIncome * ($params['extra_saving_percent'] / 100));
+    }
     $saving = $savingMain + $savingExtra;
     $spendable = max($totalIncome - $tithing - $saving, 0);
 
